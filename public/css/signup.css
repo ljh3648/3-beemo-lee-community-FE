@@ -1,0 +1,193 @@
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: white;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.back-button {
+    position: absolute;
+    left: 20px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-button:hover {
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 80px 20px 40px;
+}
+
+.signup-form {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+}
+
+.form-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #000;
+}
+
+/* 프로필 이미지 섹션 */
+.profile-section {
+    margin-bottom: 30px;
+}
+
+.profile-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.profile-helper {
+    font-size: 12px;
+    color: #ff4d4f;
+    margin-bottom: 12px;
+    min-height: 18px;
+}
+
+.profile-upload {
+    display: flex;
+    justify-content: center;
+}
+
+.profile-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: #c4c4c4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-circle:hover {
+    background-color: #b0b0b0;
+}
+
+.plus-icon {
+    font-size: 48px;
+    color: #666;
+    font-weight: 300;
+}
+
+#profilePreview {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 폼 그룹 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #7F6AEE;
+}
+
+.form-group input.error {
+    border-color: #ff4d4f;
+}
+
+.form-group .helper-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #ff4d4f;
+}
+
+/* 버튼 */
+.form-button {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    background-color: #ACA0EB;
+    border: none;
+    border-radius: 4px;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+.form-button:not(:disabled) {
+    background-color: #7F6AEE;
+}
+
+.form-button:not(:disabled):hover {
+    background-color: #6B5AD6;
+}
+
+.login-button {
+    width: 100%;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #7F6AEE;
+    background-color: white;
+    border: 1px solid #7F6AEE;
+    border-radius: 4px;
+    margin-top: 16px;
+    transition: all 0.2s;
+}
+
+.login-button:hover {
+    background-color: #f5f3ff;
+}
