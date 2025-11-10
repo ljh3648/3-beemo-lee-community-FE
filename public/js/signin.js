@@ -147,7 +147,7 @@ signinForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch('/api/auth/sessions', {
+        const response = await fetch('/api/signin', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
