@@ -2,15 +2,15 @@
   "name": "community",
   "version": "1.0.0",
   "description": "kakaotech bootcamp personal project community web server ",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "dev": "NODE_ENV=development nodemon app.js",
+    "prod": "NODE_ENV=production node app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/dotenv": "^6.1.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5"
