@@ -9,28 +9,6 @@ let lastPostId = null;
 let isLoading = false;
 let hasMore = true;
 
-// 세션 확인 및 초기화
-async function checkSession() {
-    try {
-        const response = await fetch('/api/auth/sessions', {
-            method: 'GET',
-            credentials: 'include'
-        });
-
-        if (response.status !== 200) {
-            // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
-            window.location.href = '/signin';
-            return false;
-        }
-
-        return true;
-    } catch (error) {
-        console.error('세션 확인 오류:', error);
-        window.location.href = '/signin';
-        return false;
-    }
-}
-
 // 날짜 포맷팅 (LocalDateTime을 "YYYY-MM-DD HH:MM:SS" 형식으로)
 function formatDate(dateTimeStr) {
     if (!dateTimeStr) return '';
@@ -43,7 +21,7 @@ function formatDate(dateTimeStr) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
-
+ㄱ
 // 숫자 포맷팅 (1k, 10k, 100k)
 function formatNumber(num) {
     if (num >= 100000) {
@@ -103,6 +81,12 @@ async function loadPosts() {
             method: 'GET',
             credentials: 'include'
         });
+
+        // 401 Unauthorized 상태 확인
+        if (response.status === 401) {
+            window.location.href = '/signin';
+            return;
+        }
 
         if (!response.ok) {
             throw new Error('게시글 로드 실패');
@@ -169,7 +153,7 @@ document.addEventListener('click', (e) => {
 // 로그아웃
 logoutButton.addEventListener('click', async () => {
     try {
-        await fetch('/api/auth/sessions', {
+        await fetch('/api/signout', {
             method: 'DELETE',
             credentials: 'include'
         });
@@ -184,10 +168,6 @@ logoutButton.addEventListener('click', async () => {
 
 // 초기화
 async function init() {
-    // 세션 확인
-    const isAuthenticated = await checkSession();
-    if (!isAuthenticated) return;
-
     // 프로필 이미지 설정 (기본 회색 원 - CSS로 처리)
     // profileImage.src는 설정하지 않음 (CSS background로 처리)
 
