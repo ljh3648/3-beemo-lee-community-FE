@@ -21,7 +21,7 @@ function formatDate(dateTimeStr) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
-ㄱ
+
 // 숫자 포맷팅 (1k, 10k, 100k)
 function formatNumber(num) {
     if (num >= 100000) {
