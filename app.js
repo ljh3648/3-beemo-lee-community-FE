@@ -1,12 +1,18 @@
+const envFile = process.env.NODE_ENV === 'production' ? '.env.prod'
+              : process.env.NODE_ENV === 'development' ? '.env.dev'
+              : '.env';
+
+require('dotenv').config({ path: envFile });
+
 const express = require('express')
 const { createProxyMiddleware } = require('http-proxy-middleware')
 const app = express()
-const port = 3000
+const port = process.env.PORT
 const path = require('path')
 
 // API 프록시 설정 - /api/* 요청을 api-server(8080)로 전달 (가장 먼저 처리)
 app.use('/api', createProxyMiddleware({
-  target: 'http://localhost:8080/api',
+  target: process.env.API_BASE_URL,
   changeOrigin: true
 }));
 
@@ -49,5 +55,5 @@ app.use((req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`node app.js listening on port ${port}`)
 })   
