@@ -1,0 +1,6 @@
+services:
+  dev-community-ws:
+    build: .
+    env_file: .env
+    ports:
+      - "3000:3000"

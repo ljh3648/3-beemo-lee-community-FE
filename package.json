@@ -1,21 +1,20 @@
 {
   "name": "community",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "kakaotech bootcamp personal project community web server ",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js",
-    "dev": "NODE_ENV=development nodemon app.js",
-    "prod": "NODE_ENV=production node app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "http-proxy-middleware": "^3.0.5"
+    "express": "^5.1.0"
   },
   "devDependencies": {
+    "jest": "^30.2.0",
     "nodemon": "^3.1.10"
   }
 }

@@ -1,0 +1,25 @@
+name: Express Web Sever CI
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    sync-frontend:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                node-version: 22
+            
+            - name: Install dependencies
+              run: npm install
+
+            - name: Run tests
+              run : npm test
