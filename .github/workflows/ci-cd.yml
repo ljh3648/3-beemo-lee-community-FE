@@ -117,6 +117,7 @@ jobs:
                       PORT=${{ vars.CONTAINER_PORT }}
                       HOST_PORT=${{ vars.HOST_PORT }}
                     ENVEOF
+                    sudo chown ubuntu:ubuntu /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
                     sudo chmod 600 /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
                   EOF
 
