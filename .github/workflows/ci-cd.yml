@@ -39,8 +39,8 @@ jobs:
 
             - name: Build and Push Docker Image
               run: |
-                  docker build --platform linux/amd64 -t ${{ vars.DOCKER_IMG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }} .
-                  docker push ${{ vars.DOCKER_IMG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }}
+                  docker build --platform linux/amd64 -t ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }} .
+                  docker push ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }}
 
     deploy:
         needs: build-and-push-image
@@ -111,7 +111,7 @@ jobs:
                   ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
                     sudo mkdir -p /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}
                     sudo tee /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment > /dev/null << 'ENVEOF'
-                      DOCKER_REG_ORG=${{ vars.DOCKER_IMG_ORG }}
+                      DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
                       DOCKER_IMG_NAME=${{ vars.DOCKER_IMG_NAME }}
                       DOCKER_IMG_TAG=${{ vars.DOCKER_IMG_TAG }}
                       PORT=${{ vars.CONTAINER_PORT }}
@@ -125,7 +125,7 @@ jobs:
                   ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
                       cd /home/${{ vars.CONTAINER_SERVER_USER }}/app
                       set -a
-                      source /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
+                      source /etc/docker-compose/${{ vars.DOCKER_IMG_NAME }}/environment
                       set +a
                       docker compose pull
                       docker compose up -d
