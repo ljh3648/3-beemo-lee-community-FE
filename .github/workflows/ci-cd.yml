@@ -108,15 +108,15 @@ jobs:
 
       - name: Setup environment variables using printf
         run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
             sudo mkdir -p /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}
-            FILE_CONTENT=$(printf "DOCKER_REG_ORG=%s\\nDOCKER_IMG_NAME=%s\\nDOCKER_IMG_TAG=%s\\nPORT=%s\\nHOST_PORT=%s\\n" \\
-              "${{ vars.DOCKER_REG_ORG }}" \\
-              "${{ vars.DOCKER_IMG_NAME }}" \\
-              "${{ vars.DOCKER_IMG_TAG }}" \\
-              "${{ vars.CONTAINER_PORT }}" \\
+            FILE_CONTENT=$(printf "DOCKER_REG_ORG=%s\nDOCKER_IMG_NAME=%s\nDOCKER_IMG_TAG=%s\nPORT=%s\nHOST_PORT=%s\n" \
+              "${{ vars.DOCKER_REG_ORG }}" \
+              "${{ vars.DOCKER_IMG_NAME }}" \
+              "${{ vars.DOCKER_IMG_TAG }}" \
+              "${{ vars.CONTAINER_PORT }}" \
               "${{ vars.HOST_PORT }}")
-            echo "\\$FILE_CONTENT" | sudo tee /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment > /dev/null
+            echo "$FILE_CONTENT" | sudo tee /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment > /dev/null
             sudo chown ${{ vars.EC2_SERVER_USER }}:${{ vars.EC2_SERVER_USER }} /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
             sudo chmod 600 /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
           EOF
