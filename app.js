@@ -1,10 +1,8 @@
-require('dotenv').config({ path: '.env' });
-
 const express = require('express')
 const app = express()
-const port = process.env.PORT
 const path = require('path')
 
+const port = process.env.PORT || 3000;
 // 정적 파일 서빙
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
@@ -37,6 +35,17 @@ app.get('/user/password/edit', (req, res) => {
 
 app.get('/posts/create', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/html/make-post.html'));
+});
+
+// health check
+app.get('/health', (req, res) => {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const timeString = '${hh}:${mm}:${ss}'
+
+  res.status(200).send('OK -${timeString} \ n');
 });
 
 app.use((req, res) => {

@@ -1,0 +1,10 @@
+name: Express Blue/Green CI/CD
+
+on:
+    push:
+        branches:
+            - dev/*
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest

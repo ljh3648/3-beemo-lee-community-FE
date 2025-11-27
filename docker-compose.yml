@@ -1,6 +1,8 @@
 services:
-  dev-community-ws:
+  web-server:
     build: .
-    env_file: .env
+    image: ${DOCKER_REG_ORG}/${WS_IMG_NAME}:${WS_IMG_TAG}
+    environment:
+      - PORT=${WS_PORT}
     ports:
-      - "3000:3000"
+      - "${WS_HOST_PORT}:${WS_PORT}"

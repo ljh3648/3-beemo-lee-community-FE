@@ -1,102 +1,133 @@
 name: Node.js CI/CD
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main # 프로덕션
+      - release # 스테이징
+      - develop # 개발
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v5
-            - uses: actions/setup-node@v6
-              with:
-                  node-version: 22
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
 
-            - name: Install dependencies
-              run: npm install
-            - name: Run tests
-              run: npm test
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
 
-    build-and-push-image:
-        needs: test
-        runs-on: ubuntu-latest
-        if: github.ref == 'refs/heads/main'
+  build-and-push-image:
+    needs: test
+    runs-on: ubuntu-latest
+    # 환경별 다르게 적용되기 위해서.
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'release' && 'stage' || github.ref_name == 'develop' && 'dev' }}
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/develop'
 
-        steps:
-            - uses: actions/checkout@v5
-            - name: Docker Hub Login
-              uses: docker/login-action@v3
-              with:
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-            - name: Build and Push Docker Image
-              run: |
-                  docker build --platform linux/amd64 -t ${{ secrets.DOCKER_USERNAME }}/community-ws:latest .
-                  docker push ${{ secrets.DOCKER_USERNAME }}/community-ws:latest
+      - name: Build and Push Docker Image
+        run: |
+          docker build --platform linux/amd64 -t ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }} .
+          docker push ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }}
 
-    deploy:
-        needs: build-and-push-image
-        runs-on: ubuntu-latest
+  deploy:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    # 환경별 다르게 적용되기 위해서.
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'release' && 'stage' || github.ref_name == 'develop' && 'dev' }}
+    if: github.ref == 'refs/heads/develop'
 
-        steps:
-            - name: Prepare SSH Key
-              run: |
-                  mkdir - p ~/.ssh
-                  echo "${{ secrets.SSH_PRIVATE_KEY_AWS }}" > ~/.ssh/kakaotech-beemo.pem
-                  chmod 600 ~/.ssh/kakaotech-beemo.pem
-                  ssh-keysacn -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2-ssh-private-key.pem
+          chmod 600 ~/.ssh/ec2-ssh-private-key.pem
+          ssh-keyscan -H ${{ vars.EC2_SERVER_HOST }} >> ~/.ssh/known_hosts
 
-            - name: Check if Docker is installed
-              id: check-docker
-              run: |
-                  DOCKER_EXISTS=$(ssh -i ~/ssh/kakaotech-beemo.pem -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'command -v docker >/dev/null && echo "true" || echo "false"')
-                  echo "docker_exists=$DOCKER_EXISTS" >> $GITHUB_OUTPUT
+      - name: Scp
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app"
+          scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml ${{ vars.EC2_SERVER_USER  }}@${{ vars.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/
 
-            - name: Check if Node.js is installed
-              id: check-nodejs
-              run: |
-                  NODE_EXISTS=$(ssh -i ~/ssh/kakaotech-beemo.pem -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'command -v node >/dev/null && echo "true" || echo "false"')
-                  echo "node_exists=$NODE_EXISTS" >> $GITHUB_OUTPUT
+      - name: Check if Docker is installed
+        id: check-docker
+        run: |
+          DOCKER_EXISTS=$(ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} 'command -v docker >/dev/null && echo "true" || echo "false"')
+          echo "docker_exists=$DOCKER_EXISTS" >> $GITHUB_OUTPUT
 
-            - name: Install Docker on EC2
-              if: steps.check-docker.outputs.docker_exists == 'false'
-              run: |
-                  ssh -i ~/.ssh/kakaotech-beemo.pem -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-                      sudo apt-get update
-                      sudo apt-get install -y \
-                          ca-certificates \
-                          curl \
-                          gnupg \
-                          lsb-release
-                      sudo mkdir -p /etc/apt/keyrings
-                      curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-                        | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-                      echo \
-                        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-                        https://download.docker.com/linux/ubuntu \
-                        $(lsb_release -cs) stable" \
-                        | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-                      sudo apt-get update
-                      sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-                      sudo usermod -aG docker $USER
-                    EOF
+      - name: Check if Node.js is installed
+        id: check-nodejs
+        run: |
+          NODE_EXISTS=$(ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} 'command -v node >/dev/null && echo "true" || echo "false"')
+          echo "node_exists=$NODE_EXISTS" >> $GITHUB_OUTPUT
 
-            - name: Install Node.js on EC2
-              if: steps.check-nodejs.outputs.node_exists == 'false'
-              run: |
-                  ssh -i ~/.ssh/kakaotech-beemo.pem -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-                    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-                    sudo apt-get install -y nodejs
-                  EOF
+      - name: Install Docker on EC2
+        if: steps.check-docker.outputs.docker_exists == 'false'
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
+              sudo apt-get update
+              sudo apt-get install -y \
+                  ca-certificates \
+                  curl \
+                  gnupg \
+                  lsb-release
+              sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+                | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+                https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) stable" \
+                | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              sudo usermod -aG docker $USER
+          EOF
 
-            - name: Deploy to EC2 via Docker Compose
-              run: |
-                  ssh -i ~/.ssh/kakaotech-beemo.pem -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-                    cd /home/${{ secrets.SERVER_USER }}/backend
-                    docker compose pull
-                    docker compose up -d
-                  EOF
+      - name: Install Node.js on EC2
+        if: steps.check-nodejs.outputs.node_exists == 'false'
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          EOF
+
+      - name: Setup environment variables using printf
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
+            sudo mkdir -p /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}
+            FILE_CONTENT=$(printf "DOCKER_REG_ORG=%s\nDOCKER_IMG_NAME=%s\nDOCKER_IMG_TAG=%s\nCONTAINER_PORT=%s\nHOST_PORT=%s\n" \
+              "${{ vars.DOCKER_REG_ORG }}" \
+              "${{ vars.DOCKER_IMG_NAME }}" \
+              "${{ vars.DOCKER_IMG_TAG }}" \
+              "${{ vars.CONTAINER_PORT }}" \
+              "${{ vars.HOST_PORT }}")
+            echo "$FILE_CONTENT" | sudo tee /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment > /dev/null
+            sudo chown ${{ vars.EC2_SERVER_USER }}:${{ vars.EC2_SERVER_USER }} /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
+            sudo chmod 600 /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
+          EOF
+
+      - name: Deploy to EC2 via Docker Compose
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
+              cd /home/${{ vars.EC2_SERVER_USER }}/app
+              set -a
+              source /etc/docker-compose/${{ vars.DOCKER_IMG_NAME }}/environment
+              set +a
+              docker compose pull
+              docker compose up -d
+          EOF
