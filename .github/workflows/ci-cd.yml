@@ -59,7 +59,7 @@ jobs:
 
       - name: File Copy 'docker-compose.yml'
         run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app"
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app/web-server"
           scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml ${{ vars.EC2_SERVER_USER  }}@${{ vars.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/web-server/
 
       - name: Check if Docker is installed
