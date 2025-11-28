@@ -1,8 +1,8 @@
 services:
   web-server:
     build: .
-    image: ${DOCKER_REG_ORG}/${WS_IMG_NAME}:${WS_IMG_TAG}
+    image: ${DOCKER_REG_ORG}/${DOCKER_IMG_NAME}:${DOCKER_IMG_TAG}
     environment:
-      - PORT=${WS_PORT}
+      - PORT=${CONTAINER_PORT}
     ports:
-      - "${WS_HOST_PORT}:${WS_PORT}"
+      - "${HOST_PORT}:${CONTAINER_PORT}"
