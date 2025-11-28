@@ -24,5 +24,4 @@ logs
 
 # Environment variables
 .env*
-!.env.dev.example
-!.env.prod.example
+!.env.example

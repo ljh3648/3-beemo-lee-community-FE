@@ -1,9 +1,9 @@
-name: Node.js CI/CD
+name: Web sever CI/CD
 
 on:
   push:
     branches:
-      - main # 프로덕션
+      - main    # 프로덕션
       - release # 스테이징
       - develop # 개발
 
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
@@ -25,7 +25,7 @@ jobs:
   build-and-push-image:
     needs: test
     runs-on: ubuntu-latest
-    # 환경별 다르게 적용되기 위해서.
+    # GitHub environmnet를 프로필별로 적용
     environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'release' && 'stage' || github.ref_name == 'develop' && 'dev' }}
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/develop'
 
@@ -34,7 +34,7 @@ jobs:
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USER_NAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and Push Docker Image
@@ -45,7 +45,6 @@ jobs:
   deploy:
     needs: build-and-push-image
     runs-on: ubuntu-latest
-    # 환경별 다르게 적용되기 위해서.
     environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'release' && 'stage' || github.ref_name == 'develop' && 'dev' }}
     if: github.ref == 'refs/heads/develop'
 
@@ -58,10 +57,10 @@ jobs:
           chmod 600 ~/.ssh/ec2-ssh-private-key.pem
           ssh-keyscan -H ${{ vars.EC2_SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Scp
+      - name: File Copy 'docker-compose.yml'
         run: |
           ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app"
-          scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml ${{ vars.EC2_SERVER_USER  }}@${{ vars.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/
+          scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml ${{ vars.EC2_SERVER_USER  }}@${{ vars.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/web-server/
 
       - name: Check if Docker is installed
         id: check-docker
@@ -106,28 +105,14 @@ jobs:
             sudo apt-get install -y nodejs
           EOF
 
-      - name: Setup environment variables using printf
-        run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
-            sudo mkdir -p /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}
-            FILE_CONTENT=$(printf "DOCKER_REG_ORG=%s\nDOCKER_IMG_NAME=%s\nDOCKER_IMG_TAG=%s\nCONTAINER_PORT=%s\nHOST_PORT=%s\n" \
-              "${{ vars.DOCKER_REG_ORG }}" \
-              "${{ vars.DOCKER_IMG_NAME }}" \
-              "${{ vars.DOCKER_IMG_TAG }}" \
-              "${{ vars.CONTAINER_PORT }}" \
-              "${{ vars.HOST_PORT }}")
-            echo "$FILE_CONTENT" | sudo tee /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment > /dev/null
-            sudo chown ${{ vars.EC2_SERVER_USER }}:${{ vars.EC2_SERVER_USER }} /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
-            sudo chmod 600 /etc/docker-compose/${{ vars.DOCKER_IMG_NAME}}/environment
-          EOF
-
       - name: Deploy to EC2 via Docker Compose
         run: |
           ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
-              cd /home/${{ vars.EC2_SERVER_USER }}/app
-              set -a
-              source /etc/docker-compose/${{ vars.DOCKER_IMG_NAME }}/environment
-              set +a
+              DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
+              DOCKER_IMG_NAME=${{ vars.DOCKER_IMG_NAME }}
+              DOCKER_IMG_TAG=${{ vars.DOCKER_IMG_TAG }}
+              HOST_PORT=${{ vars.HOST_PORT }}
+              CONTAINER_PORT=${{ vars.CONTAINER_PORT}}
               docker compose pull
               docker compose up -d
           EOF
