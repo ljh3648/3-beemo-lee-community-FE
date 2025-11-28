@@ -109,11 +109,11 @@ jobs:
         run: |
           ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
               cd ~/app/web-server
-              DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
-              DOCKER_IMG_NAME=${{ vars.DOCKER_IMG_NAME }}
-              DOCKER_IMG_TAG=${{ vars.DOCKER_IMG_TAG }}
-              HOST_PORT=${{ vars.HOST_PORT }}
-              CONTAINER_PORT=${{ vars.CONTAINER_PORT}}
+              export DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
+              export DOCKER_IMG_NAME=${{ vars.DOCKER_IMG_NAME }}
+              export DOCKER_IMG_TAG=${{ vars.DOCKER_IMG_TAG }}
+              export HOST_PORT=${{ vars.HOST_PORT }}
+              export CONTAINER_PORT=${{ vars.CONTAINER_PORT}}
               docker compose pull
               docker compose up -d
           EOF
