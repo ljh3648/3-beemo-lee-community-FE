@@ -37,6 +37,11 @@ app.get('/posts/create', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/html/make-post.html'));
 });
 
+
+app.get('/health', (req, res) => {
+  res.status(200).send("OK");
+});
+
 // health check
 app.get('/health', (req, res) => {
   const now = new Date();
