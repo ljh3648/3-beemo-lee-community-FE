@@ -1,8 +1,13 @@
 services:
   web-server:
-    build: .
+    build:
+      context: .
+      platforms:
+        - "linux/amd64"
+        - "linux/arm64"
     image: ${DOCKER_REG_ORG}/${DOCKER_IMG_NAME}:${DOCKER_IMG_TAG}
     environment:
       - PORT=${CONTAINER_PORT}
     ports:
       - "${HOST_PORT}:${CONTAINER_PORT}"
+    restart: always
