@@ -99,7 +99,8 @@ async function loadPosts() {
             throw new Error('게시글 로드 실패');
         }
 
-        const data = await response.json();
+        const result = await response.json();
+        const data = result.data;
 
         // 더 이상 게시글이 없으면 hasMore를 false로 설정
         if (data.postsGetCount === 0 || data.posts.length === 0) {
@@ -141,7 +142,8 @@ async function loadUserProfile() {
     try {
         const response = await fetch('/api/users/me');
         if (response.ok) {
-            const user = await response.json();
+            const result = await response.json();
+            const user = result.data;
             if (user.profileUrl) {
                 profileImage.style.backgroundImage = `url(${user.profileUrl})`;
                 profileImage.style.backgroundSize = 'cover';

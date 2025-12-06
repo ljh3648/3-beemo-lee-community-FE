@@ -136,8 +136,8 @@ passwordForm.addEventListener('submit', async (e) => {
             toast.style.display = 'block';
             setTimeout(() => {
                 toast.style.display = 'none';
-                // 로그아웃 시키거나 페이지 유지
-            }, 3000);
+                window.location.href = '/user/profile/edit';
+            }, 1500);
             
             // 입력창 초기화
             currentPasswordInput.value = '';
@@ -159,7 +159,8 @@ async function init() {
     try {
         const response = await fetch('/api/users/me');
         if (response.ok) {
-            const user = await response.json();
+            const result = await response.json();
+            const user = result.data;
             currentUserId = user.userId;
             
             if (user.profileUrl) {

@@ -159,12 +159,13 @@ signinForm.addEventListener('submit', async (e) => {
             })
         });
 
-        if (response.status === 201) {
-            // 로그인 성공 (201 Created) - 게시글 목록 페이지로 이동
+        if (response.ok) {
+            // 로그인 성공 (200 OK)
             window.location.href = '/home';
         } else {
-            // 로그인 실패 (400 Bad Request)
-            showError(passwordInput, '*아이디 또는 비밀번호를 확인해주세요');
+            // 로그인 실패
+            const data = await response.json();
+            showError(passwordInput, data.message || '*아이디 또는 비밀번호를 확인해주세요');
         }
     } catch (error) {
         console.error('로그인 오류:', error);
@@ -176,3 +177,17 @@ signinForm.addEventListener('submit', async (e) => {
 signupButton.addEventListener('click', () => {
     window.location.href = '/signup';
 });
+
+// 초기화: 이미 로그인되어 있는지 확인
+async function init() {
+    try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+            window.location.href = '/home';
+        }
+    } catch (error) {
+        // 로그인 안 된 상태이므로 아무것도 안 함
+    }
+}
+
+init();

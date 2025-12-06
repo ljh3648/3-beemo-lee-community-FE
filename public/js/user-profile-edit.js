@@ -176,12 +176,12 @@ profileForm.addEventListener('submit', async (e) => {
         if (response.ok) {
             // 성공 시
             const result = await response.json();
+            const data = result.data;
             
             // UI 업데이트
-            originalNickname = result.nickname;
-            if (result.profileUrl) {
-                // 캐시 방지를 위해 타임스탬프 추가? 필요하면.
-                headerProfileImage.style.backgroundImage = `url(${result.profileUrl})`;
+            originalNickname = data.nickname;
+            if (data.profileUrl) {
+                headerProfileImage.style.backgroundImage = `url(${data.profileUrl})`;
                 headerProfileImage.style.backgroundSize = 'cover';
                 headerProfileImage.style.backgroundPosition = 'center';
             }
@@ -189,7 +189,8 @@ profileForm.addEventListener('submit', async (e) => {
             toast.style.display = 'block';
             setTimeout(() => {
                 toast.style.display = 'none';
-            }, 3000);
+                window.location.reload();
+            }, 1500);
         } else {
             const error = await response.json();
             alert(error.message || '프로필 수정에 실패했습니다.');
@@ -231,7 +232,8 @@ async function init() {
     try {
         const response = await fetch('/api/users/me');
         if (response.ok) {
-            const user = await response.json();
+            const result = await response.json();
+            const user = result.data;
             currentUserId = user.userId;
             emailInput.value = user.email;
             nicknameInput.value = user.nickname;
@@ -246,18 +248,15 @@ async function init() {
                 headerProfileImage.style.backgroundSize = 'cover';
                 headerProfileImage.style.backgroundPosition = 'center';
             } else {
-                // 기본 이미지 처리 (CSS나 HTML에 이미 설정되어 있다면 생략 가능)
-                profilePreview.style.backgroundImage = "url('/assets/icon/profile_default.png')"; // 예시
+                profilePreview.style.backgroundImage = "url('/assets/icon/profile_default.png')"; 
                 headerProfileImage.style.backgroundImage = "url('/assets/icon/profile_default.png')";
             }
         } else {
-            // 로그인 안된 상태 등
             alert('로그인이 필요합니다.');
             window.location.href = '/signin';
         }
     } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
-        // window.location.href = '/signin';
     }
 }
 

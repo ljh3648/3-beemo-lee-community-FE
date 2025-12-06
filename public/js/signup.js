@@ -301,17 +301,14 @@ signupForm.addEventListener('submit', async (e) => {
             body: formData
         });
 
-        if (response.status === 201) {
+        if (response.ok) {
             // 회원가입 성공 (201 Created) - 로그인 페이지로 이동
             alert('회원가입이 완료되었습니다!');
             window.location.href = '/signin';
-        } else if (response.status === 400) {
-            // 회원가입 실패 (400 Bad Request) - 에러 메시지 표시
+        } else {
+            // 회원가입 실패 - 에러 메시지 표시
             const errorData = await response.json();
             alert(errorData.message || '회원가입에 실패했습니다.');
-        } else {
-            // 기타 오류
-            alert('회원가입 중 오류가 발생했습니다.');
         }
     } catch (error) {
         console.error('회원가입 오류:', error);

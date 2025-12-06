@@ -1,5 +1,4 @@
 // DOM 요소
-const backButton = document.getElementById('backButton');
 const headerProfileImage = document.getElementById('headerProfileImage');
 const headerProfileDropdown = document.getElementById('headerProfileDropdown');
 const headerLogoutButton = document.getElementById('headerLogoutButton');
@@ -12,13 +11,46 @@ const postForm = document.getElementById('postForm');
 const submitButton = document.getElementById('submitButton');
 
 // 상태
-let selectedImageBase64 = null;
+let selectedImageFile = null;
 let selectedImageFileName = '';
+let isEditMode = false;
+let postId = null;
 
-// 뒤로가기 버튼
-backButton.addEventListener('click', () => {
-    window.history.back();
-});
+// URL 파싱하여 수정 모드 확인
+function checkEditMode() {
+    const pathParts = window.location.pathname.split('/');
+    // /posts/123/edit -> ["", "posts", "123", "edit"]
+    if (pathParts.length >= 4 && pathParts[3] === 'edit') {
+        isEditMode = true;
+        postId = pathParts[2];
+        submitButton.textContent = '수정하기';
+        loadPostData(postId);
+    }
+}
+
+// 게시글 데이터 로드 (수정 모드용)
+async function loadPostData(id) {
+    try {
+        const response = await fetch(`/api/posts/${id}`);
+        if (!response.ok) {
+            alert('게시글 정보를 불러올 수 없습니다.');
+            window.location.href = '/home';
+            return;
+        }
+        const result = await response.json();
+        const post = result.data;
+
+        titleInput.value = post.title;
+        contentTextarea.value = post.body;
+
+        if (post.imageUrl) {
+            imageFileName.textContent = '기존 이미지가 있습니다. (변경하려면 업로드)';
+            // 기존 이미지는 유지, 새 이미지 업로드 시에만 변경됨
+        }
+    } catch (error) {
+        console.error('게시글 로드 오류:', error);
+    }
+}
 
 // 헤더 프로필 드롭다운
 headerProfileImage.addEventListener('click', (e) => {
@@ -75,16 +107,10 @@ imageInput.addEventListener('change', (e) => {
         selectedImageFileName = file.name;
         imageFileName.textContent = file.name;
 
-        // 파일 읽기
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            selectedImageBase64 = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        // 파일 저장 (FormData에서 사용)
+        selectedImageFile = file;
     } else {
-        selectedImageFileName = '';
-        selectedImageBase64 = null;
-        imageFileName.textContent = '파일을 선택해주세요.';
+        // 취소 시 기존 상태 유지하거나 초기화 (여기선 유지)
     }
 });
 
@@ -121,37 +147,55 @@ postForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        // API 요청 데이터 준비
-        const requestData = {
+        // FormData 생성
+        const formData = new FormData();
+
+        // JSON 데이터를 Blob으로 변환하여 추가
+        const postData = {
             title: titleInput.value.trim(),
             body: contentTextarea.value.trim()
         };
 
-        if (selectedImageBase64) {
-            requestData.imageUrl = selectedImageBase64;
+        formData.append('post', new Blob([JSON.stringify(postData)], {
+            type: 'application/json'
+        }));
+
+        // 이미지 파일 추가 (있는 경우에만)
+        if (selectedImageFile) {
+            formData.append('image', selectedImageFile);
         }
 
-        // TODO: 실제 API 연동
-        const response = await fetch('/api/posts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+        let url = '/api/posts';
+        let method = 'POST';
+
+        if (isEditMode) {
+            url = `/api/posts/${postId}`;
+            method = 'PATCH';
+        }
+
+        const response = await fetch(url, {
+            method: method,
             credentials: 'include',
-            body: JSON.stringify(requestData)
+            body: formData
+            // Content-Type 헤더는 자동으로 설정됨 (multipart/form-data)
         });
 
         if (!response.ok) {
-            throw new Error('게시글 작성 실패');
+            throw new Error('게시글 저장 실패');
         }
 
-        // 성공 시 홈으로 이동
-        alert('게시글이 작성되었습니다.');
-        window.location.href = '/';
+        // 성공 시 상세 페이지로 이동 (수정) 또는 홈으로 이동 (작성)
+        alert(isEditMode ? '게시글이 수정되었습니다.' : '게시글이 작성되었습니다.');
+
+        if (isEditMode) {
+            window.location.href = `/posts/${postId}`;
+        } else {
+            window.location.href = '/home';
+        }
 
     } catch (error) {
-        console.error('게시글 작성 오류:', error);
-        alert('게시글 작성 중 오류가 발생했습니다.');
+        console.error('게시글 저장 오류:', error);
+        alert('게시글 저장 중 오류가 발생했습니다.');
     }
 });
 
@@ -160,7 +204,8 @@ async function loadUserProfile() {
     try {
         const response = await fetch('/api/users/me');
         if (response.ok) {
-            const user = await response.json();
+            const result = await response.json();
+            const user = result.data;
             if (user.profileUrl) {
                 headerProfileImage.style.backgroundImage = `url(${user.profileUrl})`;
                 headerProfileImage.style.backgroundSize = 'cover';
@@ -179,6 +224,7 @@ async function loadUserProfile() {
 // 초기화
 async function init() {
     await loadUserProfile();
+    checkEditMode();
 }
 
 init();

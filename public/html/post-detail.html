@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 상세</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/post-detail.css">
+</head>
+<body>
+    <!-- 헤더 (home.html과 동일한 구조 + 뒤로가기 버튼) -->
+    <header class="header">
+        <div class="header-container">
+            <!-- 뒤로가기 버튼 (헤더 타이틀 왼쪽에 배치) -->
+            <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%);">
+                <button id="backButton" class="btn-back" aria-label="뒤로 가기" style="background: none; border: none; cursor: pointer; padding: 8px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <h1 class="header-title" onclick="window.location.href='/home'" style="cursor: pointer;">커뮤니티</h1>
+            
+            <div class="header-profile">
+                <div id="headerProfileImage" class="profile-image"></div>
+                <div id="headerProfileDropdown" class="profile-dropdown" style="display: none;">
+                    <a href="/user/profile/edit" class="dropdown-item">회원정보수정</a>
+                    <a href="/user/password/edit" class="dropdown-item">비밀번호수정</a>
+                    <button id="headerLogoutButton" class="dropdown-item">로그아웃</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main-container">
+        <!-- 게시글 상세 카드 -->
+        <article class="post-card">
+            <!-- 제목 -->
+            <h2 id="postTitle" class="post-title">제목을 불러오는 중...</h2>
+
+            <!-- 작성자 정보 -->
+            <div class="post-meta">
+                <div class="author-info">
+                    <div id="postAuthorAvatar" class="author-avatar"></div>
+                    <div class="author-text">
+                        <span id="postAuthorName" class="author-name">작성자</span>
+                        <span id="postDate" class="post-date">YYYY.MM.DD</span>
+                    </div>
+                </div>
+                <!-- 수정/삭제 버튼 (본인일 때만 보임) -->
+                <div id="postActions" class="post-actions" style="display: none;">
+                    <button class="action-btn edit-btn">수정</button>
+                    <button class="action-btn delete-btn" onclick="deletePost()">삭제</button>
+                </div>
+            </div>
+
+            <!-- 구분선 -->
+            <hr class="divider">
+
+            <!-- 본문 -->
+            <div class="post-body">
+                <div id="postImageContainer" class="post-image-container" style="display: none;">
+                    <img id="postImage" src="" alt="게시글 이미지" class="post-image">
+                </div>
+                <p id="postContent" class="post-content">내용을 불러오는 중...</p>
+            </div>
+
+            <!-- 통계 및 좋아요 -->
+            <div class="post-footer">
+                <div class="stats-left">
+                    <div class="stat-box">
+                        <span class="stat-label">조회수</span>
+                        <span id="postViews" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">댓글</span>
+                        <span id="postCommentsCount" class="stat-value">0</span>
+                    </div>
+                </div>
+                
+                <!-- 좋아요 버튼 -->
+                <div class="stats-right">
+                    <button id="likeButton" class="like-button">
+                        <span class="like-icon" id="likeIcon">🤍</span>
+                        <span class="like-text">좋아요</span>
+                        <span id="postLikes" class="like-count">0</span>
+                    </button>
+                </div>
+            </div>
+        </article>
+
+        <!-- 댓글 섹션 -->
+        <section class="comments-section">
+            <h3 class="comments-header">댓글</h3>
+            
+            <!-- 댓글 작성 폼 -->
+            <div class="comment-form">
+                <textarea id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요"></textarea>
+                <button id="submitCommentButton" class="comment-submit-btn" disabled>등록</button>
+            </div>
+
+            <!-- 댓글 목록 -->
+            <div id="commentsList" class="comments-list">
+                <!-- 댓글 아이템들이 여기 추가됨 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 토스트 메시지 -->
+    <div id="toast" class="toast" style="display: none;"></div>
+
+    <script src="/js/post-detail.js"></script>
+</body>
+</html>

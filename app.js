@@ -10,7 +10,7 @@ app.use('/html', express.static(path.join(__dirname, 'public/html')));
 
 // 페이지 라우팅
 app.get('/', (req, res) => {
-  res.redirect('/signin');
+  res.redirect('/home');
 });
 
 app.get('/signin', (req, res) => {
@@ -37,10 +37,14 @@ app.get('/posts/create', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/html/make-post.html'));
 });
 
-
-app.get('/health', (req, res) => {
-  res.status(200).send("OK");
+app.get('/posts/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/html/post-detail.html'));
 });
+
+app.get('/posts/:id/edit', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/html/make-post.html'));
+});
+
 
 // health check
 app.get('/health', (req, res) => {
@@ -48,9 +52,9 @@ app.get('/health', (req, res) => {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
-  const timeString = '${hh}:${mm}:${ss}'
+  const timeString = `${hh}:${mm}:${ss}`;
 
-  res.status(200).send('OK -${timeString} \ n');
+  res.status(200).send(`OK - ${timeString}\n`);
 });
 
 app.use((req, res) => {
