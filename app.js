@@ -7,6 +7,7 @@ const port = process.env.PORT || 3000;
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/html', express.static(path.join(__dirname, 'public/html')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 // 페이지 라우팅
 app.get('/', (req, res) => {
