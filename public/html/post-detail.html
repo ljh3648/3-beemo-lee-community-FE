@@ -97,8 +97,11 @@
             
             <!-- 댓글 작성 폼 -->
             <div class="comment-form">
-                <textarea id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요"></textarea>
-                <button id="submitCommentButton" class="comment-submit-btn" disabled>등록</button>
+                <textarea id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요" maxlength="255"></textarea>
+                <div class="comment-form-footer">
+                    <span class="comment-length"><span id="commentInputLength">0</span> / 255</span>
+                    <button id="submitCommentButton" class="comment-submit-btn" disabled>등록</button>
+                </div>
             </div>
 
             <!-- 댓글 목록 -->
@@ -111,6 +114,7 @@
     <!-- 토스트 메시지 -->
     <div id="toast" class="toast" style="display: none;"></div>
 
+    <script src="/js/utils.js"></script>
     <script src="/js/post-detail.js"></script>
 </body>
 </html>

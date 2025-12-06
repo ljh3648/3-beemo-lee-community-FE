@@ -4,6 +4,7 @@ const headerProfileDropdown = document.getElementById('headerProfileDropdown');
 const headerLogoutButton = document.getElementById('headerLogoutButton');
 const titleInput = document.getElementById('title');
 const contentTextarea = document.getElementById('content');
+const contentLength = document.getElementById('contentLength');
 const imageInput = document.getElementById('imageInput');
 const imageUploadButton = document.getElementById('imageUploadButton');
 const imageFileName = document.getElementById('imageFileName');
@@ -43,6 +44,9 @@ async function loadPostData(id) {
         titleInput.value = post.title;
         contentTextarea.value = post.body;
 
+        // 글자 수 업데이트
+        contentLength.textContent = post.body.length;
+
         if (post.imageUrl) {
             imageFileName.textContent = '기존 이미지가 있습니다. (변경하려면 업로드)';
             // 기존 이미지는 유지, 새 이미지 업로드 시에만 변경됨
@@ -51,6 +55,11 @@ async function loadPostData(id) {
         console.error('게시글 로드 오류:', error);
     }
 }
+
+// 글자 수 카운터
+contentTextarea.addEventListener('input', () => {
+    contentLength.textContent = contentTextarea.value.length;
+});
 
 // 헤더 프로필 드롭다운
 headerProfileImage.addEventListener('click', (e) => {
@@ -71,9 +80,13 @@ headerLogoutButton.addEventListener('click', async () => {
             method: 'PATCH',
             credentials: 'include'
         });
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     } catch (error) {
         console.error('로그아웃 오류:', error);
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     }
 });
@@ -89,16 +102,16 @@ imageInput.addEventListener('change', (e) => {
 
     if (file) {
         // 파일 타입 체크
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert('JPG, PNG 파일만 업로드 가능합니다.');
+            alert('JPG, JPEG, PNG, GIF, WebP 파일만 업로드 가능합니다.');
             imageInput.value = '';
             return;
         }
 
-        // 파일 크기 체크 (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('파일 크기는 5MB 이하여야 합니다.');
+        // 파일 크기 체크 (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('파일 크기는 10MB 이하여야 합니다.');
             imageInput.value = '';
             return;
         }

@@ -37,9 +37,13 @@ headerLogoutButton.addEventListener('click', async () => {
             method: 'PATCH',
             credentials: 'include'
         });
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     } catch (error) {
         console.error('로그아웃 오류:', error);
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     }
 });
@@ -55,15 +59,15 @@ profileImageInput.addEventListener('change', (e) => {
 
     if (file) {
         // 파일 타입 체크
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert('JPG, PNG 파일만 업로드 가능합니다.');
+            alert('JPG, JPEG, PNG, GIF, WebP 파일만 업로드 가능합니다.');
             return;
         }
 
-        // 파일 크기 체크 (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('파일 크기는 5MB 이하여야 합니다.');
+        // 파일 크기 체크 (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('파일 크기는 10MB 이하여야 합니다.');
             return;
         }
 
@@ -217,6 +221,8 @@ deleteButton.addEventListener('click', async () => {
 
         if (response.ok) {
             alert('회원 탈퇴가 완료되었습니다.');
+            deleteCookie('accessToken');
+            deleteCookie('refreshToken');
             window.location.href = '/signin';
         } else {
             alert('회원 탈퇴 처리에 실패했습니다.');
@@ -252,8 +258,7 @@ async function init() {
                 headerProfileImage.style.backgroundImage = "url('/assets/icon/profile_default.png')";
             }
         } else {
-            alert('로그인이 필요합니다.');
-            window.location.href = '/signin';
+            handleAuthError();
         }
     } catch (error) {
         console.error('사용자 정보 로드 실패:', error);

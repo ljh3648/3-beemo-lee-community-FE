@@ -24,9 +24,10 @@ const elements = {
     postLikes: document.getElementById('postLikes'),
     
     commentInput: document.getElementById('commentInput'),
+    commentInputLength: document.getElementById('commentInputLength'),
     submitCommentBtn: document.getElementById('submitCommentButton'),
     commentsList: document.getElementById('commentsList'),
-    
+
     toast: document.getElementById('toast')
 };
 
@@ -80,8 +81,12 @@ document.addEventListener('click', (e) => {
 elements.logoutBtn.addEventListener('click', async () => {
     try {
         await fetch('/api/signout', { method: 'PATCH' });
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     } catch (e) {
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     }
 });
@@ -89,6 +94,8 @@ elements.logoutBtn.addEventListener('click', async () => {
 elements.likeBtn.addEventListener('click', toggleLike);
 
 elements.commentInput.addEventListener('input', (e) => {
+    const length = e.target.value.length;
+    elements.commentInputLength.textContent = length;
     elements.submitCommentBtn.disabled = e.target.value.trim().length === 0;
 });
 
@@ -122,17 +129,20 @@ elements.submitCommentBtn.addEventListener('click', async () => {
 async function loadUser() {
     try {
         const res = await fetch('/api/users/me');
-        if (!res.ok) throw new Error('Unauthorized');
+        if (!res.ok) {
+            handleAuthError();
+            return;
+        }
         const { data } = await res.json();
         state.currentUserId = data.userId;
-        
+
         if (data.profileUrl) {
             elements.headerProfileImg.style.backgroundImage = `url(${data.profileUrl})`;
         } else {
             elements.headerProfileImg.style.backgroundImage = `url('/assets/icon/profile_default.png')`;
         }
     } catch (e) {
-        window.location.href = '/signin';
+        handleAuthError();
     }
 }
 
@@ -144,7 +154,10 @@ async function loadPost() {
 
         elements.postTitle.textContent = post.title;
         elements.postAuthorName.textContent = post.author.nickname;
-        elements.postDate.textContent = formatDate(post.createAt);
+
+        // 수정 여부 표시
+        const isEdited = post.updateAt && post.createAt !== post.updateAt;
+        elements.postDate.textContent = formatDate(post.createAt) + (isEdited ? ' (수정됨)' : '');
         elements.postContent.textContent = post.body;
         elements.postViews.textContent = post.viewsCnt;
         elements.postLikes.textContent = post.likesCnt || 0;
@@ -246,6 +259,10 @@ function renderComments(comments) {
             ? comment.author.profileUrl
             : '/assets/icon/profile_default.png';
 
+        // 수정 여부 확인
+        const isEdited = comment.updateAt && comment.createAt !== comment.updateAt;
+        const dateText = formatDate(comment.createAt) + (isEdited ? ' (수정됨)' : '');
+
         const div = document.createElement('div');
         div.className = 'comment-item';
         div.id = `comment-${comment.id}`;
@@ -256,7 +273,7 @@ function renderComments(comments) {
                 <div class="comment-header">
                     <div class="comment-user">
                         <span class="comment-username">${comment.author.nickname}</span>
-                        <span class="comment-date">${formatDate(comment.createAt)}</span>
+                        <span class="comment-date">${dateText}</span>
                     </div>
                     ${isOwner ? `
                     <div class="comment-actions">

@@ -217,7 +217,6 @@
 
 /* 댓글 폼 */
 .comment-form {
-    position: relative;
     margin-bottom: 40px;
 }
 
@@ -225,6 +224,7 @@
     width: 100%;
     min-height: 100px;
     padding: 16px;
+    padding-bottom: 50px;
     border: 1px solid #ddd;
     border-radius: 12px;
     resize: none;
@@ -238,10 +238,20 @@
     border-color: #7F6AEE; /* 포인트 컬러 */
 }
 
+.comment-form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding: 0 4px;
+}
+
+.comment-length {
+    font-size: 13px;
+    color: #888;
+}
+
 .comment-submit-btn {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
     background-color: #ACA0EB;
     color: white;
     border: none;

@@ -91,7 +91,7 @@ async function loadPosts() {
 
         // 401 Unauthorized 상태 확인
         if (response.status === 401) {
-            window.location.href = '/signin';
+            handleAuthError();
             return;
         }
 
@@ -125,8 +125,8 @@ async function loadPosts() {
     }
 }
 
-// 인피니티 스크롤
-function handleScroll() {
+// 인피니티 스크롤 (throttle 적용 - 200ms마다 최대 1번)
+const handleScroll = throttle(() => {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const windowHeight = window.innerHeight;
     const documentHeight = document.documentElement.scrollHeight;
@@ -135,7 +135,7 @@ function handleScroll() {
     if (scrollTop + windowHeight >= documentHeight - 100) {
         loadPosts();
     }
-}
+}, 200);
 
 // 사용자 프로필 로드 (헤더용)
 async function loadUserProfile() {
@@ -185,10 +185,14 @@ logoutButton.addEventListener('click', async () => {
             credentials: 'include'
         });
 
-        // 성공 여부와 관계없이 로그인 페이지로 이동
+        // 쿠키 삭제 후 로그인 페이지로 이동
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     } catch (error) {
         console.error('로그아웃 오류:', error);
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     }
 });

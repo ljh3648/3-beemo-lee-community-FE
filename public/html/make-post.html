@@ -50,15 +50,16 @@
                     class="form-textarea"
                     placeholder="내용을 입력해주세요."
                     rows="10"
+                    maxlength="10000"
                 ></textarea>
-                <p class="helper-text">* helper text</p>
+                <p class="helper-text"><span id="contentLength">0</span> / 10,000</p>
             </div>
 
             <!-- 이미지 업로드 -->
             <div class="form-group">
                 <label class="form-label">이미지</label>
                 <div class="image-upload-container">
-                    <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png" style="display: none;">
+                    <input type="file" id="imageInput" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" style="display: none;">
                     <button type="button" id="imageUploadButton" class="image-upload-button">
                         <span class="upload-icon">파일 선택</span>
                         <span id="imageFileName" class="file-name">파일을 선택해주세요.</span>
@@ -71,6 +72,7 @@
         </form>
     </main>
 
+    <script src="/js/utils.js"></script>
     <script src="/js/make-post.js"></script>
 </body>
 </html>

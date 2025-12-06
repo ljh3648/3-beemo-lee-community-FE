@@ -24,18 +24,18 @@ profileImageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
 
     if (file) {
-        // 파일 타입 체크 (jpg, png만 허용)
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        // 파일 타입 체크
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            showProfileError('*JPG, PNG 파일만 업로드 가능합니다.');
+            showProfileError('*JPG, JPEG, PNG, GIF, WebP 파일만 업로드 가능합니다.');
             isProfileValid = true; // 프로필은 선택사항이므로 true 유지
             updateSignupButton();
             return;
         }
 
-        // 파일 크기 체크 (5MB 제한)
-        if (file.size > 5 * 1024 * 1024) {
-            showProfileError('*파일 크기는 5MB 이하여야 합니다.');
+        // 파일 크기 체크 (10MB 제한)
+        if (file.size > 10 * 1024 * 1024) {
+            showProfileError('*파일 크기는 10MB 이하여야 합니다.');
             isProfileValid = true; // 프로필은 선택사항이므로 true 유지
             updateSignupButton();
             return;

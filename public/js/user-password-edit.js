@@ -34,9 +34,13 @@ headerLogoutButton.addEventListener('click', async () => {
             method: 'PATCH',
             credentials: 'include'
         });
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     } catch (error) {
         console.error('로그아웃 오류:', error);
+        deleteCookie('accessToken');
+        deleteCookie('refreshToken');
         window.location.href = '/signin';
     }
 });
@@ -173,7 +177,7 @@ async function init() {
                 headerProfileImage.style.backgroundPosition = 'center';
             }
         } else {
-            window.location.href = '/signin';
+            handleAuthError();
         }
     } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
