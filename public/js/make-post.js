@@ -35,8 +35,8 @@ document.addEventListener('click', (e) => {
 // 헤더 로그아웃
 headerLogoutButton.addEventListener('click', async () => {
     try {
-        await fetch('/api/auth/sessions', {
-            method: 'DELETE',
+        await fetch('/api/signout', {
+            method: 'PATCH',
             credentials: 'include'
         });
         window.location.href = '/signin';
@@ -147,7 +147,7 @@ postForm.addEventListener('submit', async (e) => {
 
         // 성공 시 홈으로 이동
         alert('게시글이 작성되었습니다.');
-        window.location.href = '/home';
+        window.location.href = '/';
 
     } catch (error) {
         console.error('게시글 작성 오류:', error);
@@ -155,10 +155,30 @@ postForm.addEventListener('submit', async (e) => {
     }
 });
 
+// 사용자 프로필 로드 (헤더용)
+async function loadUserProfile() {
+    try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+            const user = await response.json();
+            if (user.profileUrl) {
+                headerProfileImage.style.backgroundImage = `url(${user.profileUrl})`;
+                headerProfileImage.style.backgroundSize = 'cover';
+                headerProfileImage.style.backgroundPosition = 'center';
+            } else {
+                headerProfileImage.style.backgroundImage = "url('/assets/icon/profile_default.png')";
+                headerProfileImage.style.backgroundSize = 'cover';
+                headerProfileImage.style.backgroundPosition = 'center';
+            }
+        }
+    } catch (error) {
+        console.error('프로필 로드 실패:', error);
+    }
+}
+
 // 초기화
 async function init() {
-    // TODO: 사용자 프로필 이미지 가져오기
-    // 임시: 프로필 이미지 설정
+    await loadUserProfile();
 }
 
 init();

@@ -13,9 +13,10 @@ const deleteButton = document.getElementById('deleteButton');
 const toast = document.getElementById('toast');
 
 // 상태
-let selectedProfileImageBase64 = null;
-let isNicknameValid = false;
+let isNicknameValid = true; // 초기값은 true (기존 닉네임)
 let originalNickname = '';
+let currentUserId = null;
+let selectedProfileFile = null;
 
 // 헤더 프로필 드롭다운
 headerProfileImage.addEventListener('click', (e) => {
@@ -32,8 +33,8 @@ document.addEventListener('click', (e) => {
 // 헤더 로그아웃
 headerLogoutButton.addEventListener('click', async () => {
     try {
-        await fetch('/api/auth/sessions', {
-            method: 'DELETE',
+        await fetch('/api/signout', {
+            method: 'PATCH',
             credentials: 'include'
         });
         window.location.href = '/signin';
@@ -66,12 +67,15 @@ profileImageInput.addEventListener('change', (e) => {
             return;
         }
 
-        // 파일 읽기
+        selectedProfileFile = file;
+
+        // 파일 읽기 (미리보기)
         const reader = new FileReader();
         reader.onload = (event) => {
             const base64String = event.target.result;
-            selectedProfileImageBase64 = base64String;
             profilePreview.style.backgroundImage = `url(${base64String})`;
+            profilePreview.style.backgroundSize = 'cover';
+            profilePreview.style.backgroundPosition = 'center';
         };
         reader.readAsDataURL(file);
     }
@@ -108,6 +112,7 @@ function showError(message) {
     const helperText = document.querySelector('.helper-text');
     if (message) {
         helperText.textContent = message;
+        helperText.style.color = 'red';
         nicknameInput.classList.add('error');
     } else {
         helperText.textContent = '';
@@ -132,27 +137,63 @@ nicknameInput.addEventListener('blur', () => {
 profileForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 닉네임 유효성 검사
-    if (!isNicknameValid) {
-        const result = validateNickname(nicknameInput.value);
-        showError(result.message);
+    if (!currentUserId) {
+        alert('사용자 정보를 불러오는 중입니다.');
         return;
     }
 
-    try {
-        // TODO: 실제 API 연동
-        // const requestData = {
-        //     nickname: nicknameInput.value
-        // };
-        // if (selectedProfileImageBase64) {
-        //     requestData.profileImage = selectedProfileImageBase64;
-        // }
+    // 닉네임 변경 없으면 유효성 검사 패스 (단, 빈값 등은 체크)
+    if (nicknameInput.value !== originalNickname) {
+        if (!isNicknameValid) {
+            const result = validateNickname(nicknameInput.value);
+            showError(result.message);
+            return;
+        }
+    }
 
-        // 임시: 토스트 메시지 표시
-        toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3000);
+    try {
+        const formData = new FormData();
+
+        // 닉네임이 변경된 경우에만 전송 (혹은 항상 전송해도 됨)
+        const updateRequest = {
+            nickname: nicknameInput.value
+        };
+
+        formData.append('user', new Blob(
+            [JSON.stringify(updateRequest)],
+            {type: 'application/json'}
+        ));
+
+        if (selectedProfileFile) {
+            formData.append('profileImage', selectedProfileFile);
+        }
+
+        const response = await fetch(`/api/users/${currentUserId}`, {
+            method: 'PATCH',
+            body: formData // Content-Type 자동 설정
+        });
+
+        if (response.ok) {
+            // 성공 시
+            const result = await response.json();
+            
+            // UI 업데이트
+            originalNickname = result.nickname;
+            if (result.profileUrl) {
+                // 캐시 방지를 위해 타임스탬프 추가? 필요하면.
+                headerProfileImage.style.backgroundImage = `url(${result.profileUrl})`;
+                headerProfileImage.style.backgroundSize = 'cover';
+                headerProfileImage.style.backgroundPosition = 'center';
+            }
+
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        } else {
+            const error = await response.json();
+            alert(error.message || '프로필 수정에 실패했습니다.');
+        }
 
     } catch (error) {
         console.error('프로필 수정 오류:', error);
@@ -162,19 +203,23 @@ profileForm.addEventListener('submit', async (e) => {
 
 // 회원 탈퇴
 deleteButton.addEventListener('click', async () => {
+    if (!currentUserId) return;
+
     if (!confirm('정말 탈퇴하시겠습니까?')) {
         return;
     }
 
     try {
-        // TODO: 실제 API 연동
-        // const response = await fetch('/api/users', {
-        //     method: 'DELETE',
-        //     credentials: 'include'
-        // });
+        const response = await fetch(`/api/users/${currentUserId}`, {
+            method: 'DELETE'
+        });
 
-        alert('회원 탈퇴가 완료되었습니다.');
-        window.location.href = '/signin';
+        if (response.ok) {
+            alert('회원 탈퇴가 완료되었습니다.');
+            window.location.href = '/signin';
+        } else {
+            alert('회원 탈퇴 처리에 실패했습니다.');
+        }
     } catch (error) {
         console.error('회원 탈퇴 오류:', error);
         alert('회원 탈퇴 중 오류가 발생했습니다.');
@@ -183,12 +228,37 @@ deleteButton.addEventListener('click', async () => {
 
 // 초기화
 async function init() {
-    // TODO: 사용자 정보 가져오기
-    // 임시 데이터
-    emailInput.value = 'example@example.com';
-    nicknameInput.value = '닉네임';
-    originalNickname = '닉네임';
-    isNicknameValid = true;
+    try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+            const user = await response.json();
+            currentUserId = user.userId;
+            emailInput.value = user.email;
+            nicknameInput.value = user.nickname;
+            originalNickname = user.nickname;
+
+            if (user.profileUrl) {
+                profilePreview.style.backgroundImage = `url(${user.profileUrl})`;
+                profilePreview.style.backgroundSize = 'cover';
+                profilePreview.style.backgroundPosition = 'center';
+                
+                headerProfileImage.style.backgroundImage = `url(${user.profileUrl})`;
+                headerProfileImage.style.backgroundSize = 'cover';
+                headerProfileImage.style.backgroundPosition = 'center';
+            } else {
+                // 기본 이미지 처리 (CSS나 HTML에 이미 설정되어 있다면 생략 가능)
+                profilePreview.style.backgroundImage = "url('/assets/icon/profile_default.png')"; // 예시
+                headerProfileImage.style.backgroundImage = "url('/assets/icon/profile_default.png')";
+            }
+        } else {
+            // 로그인 안된 상태 등
+            alert('로그인이 필요합니다.');
+            window.location.href = '/signin';
+        }
+    } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+        // window.location.href = '/signin';
+    }
 }
 
 init();

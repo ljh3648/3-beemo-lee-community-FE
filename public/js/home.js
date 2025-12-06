@@ -3,6 +3,8 @@ const postsContainer = document.getElementById('postsContainer');
 const createPostButton = document.getElementById('createPostButton');
 const loading = document.getElementById('loading');
 const profileImage = document.getElementById('profileImage');
+const profileDropdown = document.getElementById('profileDropdown');
+const logoutButton = document.getElementById('logoutButton');
 
 // 상태
 let lastPostId = null;
@@ -45,6 +47,11 @@ function createPostCard(post) {
     // 제목이 26자를 초과하면 잘라냄 (글자 수 제한)
     const displayTitle = post.title.length > 26 ? post.title.substring(0, 26) : post.title;
 
+    // 작성자 프로필 이미지 처리
+    const authorProfileStyle = post.author.profileUrl 
+        ? `background-image: url('${post.author.profileUrl}'); background-size: cover; background-position: center;`
+        : `background-image: url('/assets/icon/profile_default.png'); background-size: cover; background-position: center;`;
+
     card.innerHTML = `
         <div class="post-header">
             <h3 class="post-title">${displayTitle}</h3>
@@ -56,7 +63,7 @@ function createPostCard(post) {
             <span class="stat-item">조회수 ${formatNumber(post.viewsCnt || 0)}</span>
         </div>
         <div class="post-footer">
-            <div class="author-avatar"></div>
+            <div class="author-avatar" style="${authorProfileStyle}"></div>
             <span class="author-name">${post.author.nickname}</span>
         </div>
     `;
@@ -129,15 +136,33 @@ function handleScroll() {
     }
 }
 
+// 사용자 프로필 로드 (헤더용)
+async function loadUserProfile() {
+    try {
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+            const user = await response.json();
+            if (user.profileUrl) {
+                profileImage.style.backgroundImage = `url(${user.profileUrl})`;
+                profileImage.style.backgroundSize = 'cover';
+                profileImage.style.backgroundPosition = 'center';
+            } else {
+                profileImage.style.backgroundImage = "url('/assets/icon/profile_default.png')";
+                profileImage.style.backgroundSize = 'cover';
+                profileImage.style.backgroundPosition = 'center';
+            }
+        }
+    } catch (error) {
+        console.error('프로필 로드 실패:', error);
+    }
+}
+
 // 게시글 작성 버튼
 createPostButton.addEventListener('click', () => {
     window.location.href = '/posts/create';
 });
 
 // 프로필 드롭다운
-const profileDropdown = document.getElementById('profileDropdown');
-const logoutButton = document.getElementById('logoutButton');
-
 profileImage.addEventListener('click', (e) => {
     e.stopPropagation();
     profileDropdown.style.display = profileDropdown.style.display === 'none' ? 'block' : 'none';
@@ -154,7 +179,7 @@ document.addEventListener('click', (e) => {
 logoutButton.addEventListener('click', async () => {
     try {
         await fetch('/api/signout', {
-            method: 'DELETE',
+            method: 'PATCH',
             credentials: 'include'
         });
 
@@ -168,10 +193,7 @@ logoutButton.addEventListener('click', async () => {
 
 // 초기화
 async function init() {
-    // 프로필 이미지 설정 (기본 회색 원 - CSS로 처리)
-    // profileImage.src는 설정하지 않음 (CSS background로 처리)
-
-    // 첫 페이지 로드
+    await loadUserProfile();
     await loadPosts();
 
     // 스크롤 이벤트 등록
