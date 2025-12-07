@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontend-local-web
+    env_file:
+      - .env
+    environment:
+      # 컨테이너 내부는 app.js가 PORT를 쓰니까 PORT로 넘겨줌
+      - PORT=${WS_PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      # 호스트 포트:컨테이너 포트
+      - "${WS_HOST_PORT:-3000}:${WS_PORT:-3000}"
+    volumes:
+      # 코드 고치면 바로 반영되게 연결 (Live Reload)
+      - ./public:/app/public
+      - ./app.js:/app/app.js
+    networks:
+      - frontend-local-net
+    restart: unless-stopped
+
+networks:
+  frontend-local-net:
+    driver: bridge
