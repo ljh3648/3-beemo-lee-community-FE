@@ -293,7 +293,24 @@ function renderComments(comments) {
 // Global Helpers
 window.deletePost = async () => {
     if (!confirm('게시글을 삭제하시겠습니까?')) return;
-    alert('삭제 기능 미구현'); // 백엔드 API 필요
+
+    try {
+        const res = await fetchWithAuth(`/api/posts/${state.postId}`, {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            showToast('게시글이 삭제되었습니다.');
+            setTimeout(() => {
+                window.location.href = '/home';
+            }, 1000);
+        } else {
+            const { message } = await res.json();
+            showToast(message || '게시글 삭제에 실패했습니다.');
+        }
+    } catch (e) {
+        showToast('오류가 발생했습니다.');
+    }
 };
 
 window.enableEditComment = (id, body) => {
