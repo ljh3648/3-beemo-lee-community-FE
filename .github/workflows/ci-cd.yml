@@ -3,7 +3,7 @@ name: Web sever CI/CD
 on:
   push:
     branches:
-      - main    # 프로덕션
+      - main    # 운영
       - release # 스테이징
       - develop # 개발
 
@@ -17,30 +17,30 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install dependencies
+      - name: 의존성 패키지 설치
         run: npm install
-      - name: Run tests
+      - name: 테스트 실행
         run: npm test
 
   build-and-push-image:
     needs: test
     runs-on: ubuntu-latest
-    # GitHub environmnet를 프로필별로 적용
+    # 환경별 변수 적용 (prod, stage, dev)
     environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'release' && 'stage' || github.ref_name == 'develop' && 'dev' }}
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/develop'
 
     steps:
       - uses: actions/checkout@v5
-      - name: Docker Hub Login
+      - name: 도커 허브 로그인
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKER_USER_NAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: 이미지 빌드하고 푸시하기
         run: |
-          docker build --platform linux/amd64 -t ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }} .
-          docker push ${{ vars.DOCKER_REG_ORG }}/${{ vars.DOCKER_IMG_NAME }}:${{ vars.DOCKER_IMG_TAG }}
+          docker build --platform linux/amd64 -t ${{ vars.DOCKER_REG_ORG }}/${{ vars.WS_IMG_NAME }}:${{ vars.WS_IMG_TAG }} .
+          docker push ${{ vars.DOCKER_REG_ORG }}/${{ vars.WS_IMG_NAME }}:${{ vars.WS_IMG_TAG }}
 
   deploy:
     needs: build-and-push-image
@@ -50,34 +50,48 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - name: Prepare SSH Key
+      
+      - name: SSH 키 준비하기
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2-ssh-private-key.pem
           chmod 600 ~/.ssh/ec2-ssh-private-key.pem
-          ssh-keyscan -H ${{ vars.EC2_SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: File Copy 'docker-compose.yml'
+      # 1. .env 파일 생성
+      # 프론트엔드용 환경변수 모음
+      - name: 환경변수 파일(.env) 만들기
         run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app/web-server"
-          scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml ${{ vars.EC2_SERVER_USER  }}@${{ vars.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/web-server/
+          cat <<EOF > .env
+          # 기본 설정
+          NODE_ENV=${{ vars.NODE_ENV }}
+          
+          # 이미지 정보
+          DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
+          WS_IMG_NAME=${{ vars.WS_IMG_NAME }}
+          WS_IMG_TAG=${{ vars.WS_IMG_TAG }}
+          
+          # 포트
+          WS_HOST_PORT=${{ vars.WS_HOST_PORT }}
+          WS_PORT=${{ vars.WS_PORT }}
+          EOF
 
-      - name: Check if Docker is installed
+      # 2. 파일 서버로 전송 (.env + docker-compose.yml)
+      - name: 배포 파일들 EC2로 보내기
+        run: |
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem ${{ vars.EC2_SERVER_USER }}@${{ secrets.EC2_SERVER_HOST }} "mkdir -p /home/${{ vars.EC2_SERVER_USER }}/app/web-server"
+          scp -i ~/.ssh/ec2-ssh-private-key.pem docker-compose.yml .env ${{ vars.EC2_SERVER_USER  }}@${{ secrets.EC2_SERVER_HOST }}:/home/${{ vars.EC2_SERVER_USER }}/app/web-server/
+
+      - name: 도커 설치되어 있나 확인
         id: check-docker
         run: |
-          DOCKER_EXISTS=$(ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} 'command -v docker >/dev/null && echo "true" || echo "false"')
+          DOCKER_EXISTS=$(ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ secrets.EC2_SERVER_HOST }} 'command -v docker >/dev/null && echo "true" || echo "false"')
           echo "docker_exists=$DOCKER_EXISTS" >> $GITHUB_OUTPUT
 
-      - name: Check if Node.js is installed
-        id: check-nodejs
-        run: |
-          NODE_EXISTS=$(ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} 'command -v node >/dev/null && echo "true" || echo "false"')
-          echo "node_exists=$NODE_EXISTS" >> $GITHUB_OUTPUT
-
-      - name: Install Docker on EC2
+      - name: 도커 없으면 설치하기
         if: steps.check-docker.outputs.docker_exists == 'false'
         run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ secrets.EC2_SERVER_HOST }} << 'EOF'
               sudo apt-get update
               sudo apt-get install -y \
                   ca-certificates \
@@ -97,25 +111,27 @@ jobs:
               sudo usermod -aG docker $USER
           EOF
 
-      - name: Install Node.js on EC2
-        if: steps.check-nodejs.outputs.node_exists == 'false'
+      # 3. 배포 실행
+      - name: 도커 컴포즈로 배포 시작
         run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << 'EOF'
-            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-          EOF
-
-      - name: Deploy to EC2 via Docker Compose
-        run: |
-          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ vars.EC2_SERVER_HOST }} << EOF
+          ssh -i ~/.ssh/ec2-ssh-private-key.pem -o StrictHostKeyChecking=no ${{ vars.EC2_SERVER_USER }}@${{ secrets.EC2_SERVER_HOST }} << EOF
               cd ~/app/web-server
-              export DOCKER_REG_ORG=${{ vars.DOCKER_REG_ORG }}
-              export DOCKER_IMG_NAME=${{ vars.DOCKER_IMG_NAME }}
-              export DOCKER_IMG_TAG=${{ vars.DOCKER_IMG_TAG }}
-              export HOST_PORT=${{ vars.HOST_PORT }}
-              export CONTAINER_PORT=${{ vars.CONTAINER_PORT}}
               docker compose down
               docker compose pull
               docker compose up -d
               docker image prune -f
           EOF
+
+# [설정 가이드]
+# 깃헙 레포 Settings > Secrets and variables > Actions 에 등록할 내용
+#
+# 1. Secrets (보안)
+# - DOCKER_TOKEN, EC2_SSH_PRIVATE_KEY
+# - EC2_SERVER_HOST
+#
+# 2. Variables (환경변수 - dev/prod 등)
+# - DOCKER_USER_NAME, DOCKER_REG_ORG
+# - WS_IMG_NAME, WS_IMG_TAG
+# - WS_HOST_PORT, WS_PORT
+# - NODE_ENV (development, production)
+# - EC2_SERVER_USER
